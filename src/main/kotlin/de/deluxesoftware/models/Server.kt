@@ -1,13 +1,20 @@
 package de.deluxesoftware.models
 
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 import org.jetbrains.exposed.dao.IntEntity
 import org.jetbrains.exposed.dao.IntEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.dao.id.IntIdTable
 
 @Serializable
-data class Server(val id: Int? = null, val host: String, val port: Int)
+data class Server(
+    val id: Int? = null,
+    val host: String,
+    val port: Int,
+    @Transient
+    val customer: Int = 0
+)
 
 object Servers : IntIdTable() {
     val host = varchar("host", 16)
@@ -22,5 +29,5 @@ class ServerEntity(id: EntityID<Int>) : IntEntity(id) {
     var port by Servers.port
     var customer by CustomerEntity referencedOn Servers.customer
 
-    fun toServer() = Server(id.value, host, port)
+    fun toServer() = Server(id.value, host, port, customer.id.value)
 }

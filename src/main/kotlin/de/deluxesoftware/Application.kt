@@ -35,11 +35,6 @@ fun main(args: Array<String>): Unit = io.ktor.server.netty.EngineMain.main(args)
 
 @Suppress("unused")
 fun Application.module() {
-    val jwtIssuer = environment.config.property("jwt.domain").getString()
-    val jwtAudience = environment.config.property("jwt.audience").getString()
-    val jwtRealm = environment.config.property("jwt.realm").getString()
-    val expirationTime = environment.config.property("jwt.validity").getString().toInt()
-    val jwtSecret = environment.config.property("jwt.secret").getString()
 
     DbSettings.db
     createTables()
@@ -52,15 +47,7 @@ fun Application.module() {
             }
         )
     }
-    install(Authentication) {
-        jwt {
-            realm = jwtRealm
-            verifier(makeJwtVerifier(jwtIssuer, jwtAudience))
-            validate { credential ->
-                if (credential.payload.audience.contains(jwtAudience)) JWTPrincipal(credential.payload) else null
-            }
-        }
-    }
+
     install(CallLogging)
     install(StatusPages) {
         exception<EntityNotFoundException> {
@@ -75,15 +62,35 @@ fun Application.module() {
 
     registerCustomerRoutes()
 
-    fun obtainExpirationDate() = Date(System.currentTimeMillis() + expirationTime)
-    fun generateToken(login: Login): String = JWT.create()
-        .withSubject("Authentication")
-        .withIssuer(jwtIssuer)
-        .withClaim("id", login.id)
-        .withClaim("username", login.username)
-        .withClaim("password", login.password)
-        .withExpiresAt(obtainExpirationDate())
-        .sign(algorithm)
+    try {
+        val jwtIssuer = environment.config.property("jwt.domain").getString()
+        val jwtAudience = environment.config.property("jwt.audience").getString()
+        val jwtRealm = environment.config.property("jwt.realm").getString()
+        val expirationTime = environment.config.property("jwt.validity").getString().toInt()
+        val jwtSecret = environment.config.property("jwt.secret").getString()
+
+        install(Authentication) {
+            jwt {
+                realm = jwtRealm
+                verifier(makeJwtVerifier(jwtIssuer, jwtAudience))
+                validate { credential ->
+                    if (credential.payload.audience.contains(jwtAudience)) JWTPrincipal(credential.payload) else null
+                }
+            }
+        }
+
+        fun obtainExpirationDate() = Date(System.currentTimeMillis() + expirationTime)
+        fun generateToken(login: Login): String = JWT.create()
+            .withSubject("Authentication")
+            .withIssuer(jwtIssuer)
+            .withClaim("id", login.id)
+            .withClaim("username", login.username)
+            .withClaim("password", login.password)
+            .withExpiresAt(obtainExpirationDate())
+            .sign(algorithm)
+    } catch (e: Exception) {
+        // TODO: Auth implementation
+    }
 }
 
 private val algorithm = Algorithm.HMAC256("secret")

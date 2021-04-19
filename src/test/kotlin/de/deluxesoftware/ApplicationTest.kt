@@ -1,6 +1,6 @@
 package de.deluxesoftware
 
-import de.deluxesoftware.routes.registerCustomerRoutes
+import io.ktor.application.Application
 import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.testing.handleRequest
@@ -12,7 +12,7 @@ class ApplicationTest {
 
     @Test
     fun `login with wrong email and check response`() {
-        withTestApplication({ registerCustomerRoutes() }) {
+        withTestApplication(Application::module) {
             handleRequest(HttpMethod.Get, "/customer").apply {
                 assertEquals(HttpStatusCode.OK, response.status())
             }
